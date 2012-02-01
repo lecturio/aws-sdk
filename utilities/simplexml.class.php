@@ -1,6 +1,6 @@
 <?php
 /*
- * Copyright 2010-2011 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * Copyright 2010-2012 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License").
  * You may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
  * Wraps the underlying `SimpleXMLIterator` class with enhancements for rapidly traversing the DOM tree,
  * converting types, and comparisons.
  *
- * @version 2011.03.25
+ * @version 2012.01.17
  * @license See the included NOTICE.md file for more information.
  * @copyright See the included NOTICE.md file for more information.
  * @link http://aws.amazon.com/php/ PHP Developer Center
@@ -77,6 +77,27 @@ class CFSimpleXML extends SimpleXMLIterator
 		return $results;
 	}
 
+	/**
+	 * Alternate approach to constructing a new instance. Supports chaining.
+	 *
+	 * @param string $data (Required) A well-formed XML string or the path or URL to an XML document if $data_is_url is <code>true</code>.
+	 * @param integer $options (Optional) Used to specify additional LibXML parameters. The default value is <code>0</code>.
+	 * @param boolean $data_is_url (Optional) Specify a value of <code>true</code> to specify that data is a path or URL to an XML document instead of string data. The default value is <code>false</code>.
+	 * @param string $ns (Optional) The XML namespace to return values for.
+	 * @param boolean $is_prefix (Optional) (No description provided by PHP.net.)
+	 * @return CFSimpleXML Creates a new <CFSimpleXML> element.
+	 */
+	public static function init($data, $options = 0, $data_is_url, $ns, $is_prefix = false)
+	{
+		if (version_compare(PHP_VERSION, '5.3.0', '<'))
+		{
+			throw new Exception('PHP 5.3 or newer is required to instantiate a new class with CLASS::init().');
+		}
+
+		$self = get_called_class();
+		return new $self($data, $options, $data_is_url, $ns, $is_prefix);
+	}
+
 
 	/*%******************************************************************************************%*/
 	// TRAVERSAL
@@ -127,9 +148,9 @@ class CFSimpleXML extends SimpleXMLIterator
 	}
 
 	/**
-	 * Gets the current XML node as a true array.
+	 * Gets the current XML node as <CFArray>, a child class of PHP's <php:ArrayObject> class.
 	 *
-	 * @return array The current XML node as a true array.
+	 * @return CFArray The current XML node as a <CFArray> object.
 	 */
 	public function to_array()
 	{

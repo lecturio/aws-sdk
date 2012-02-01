@@ -2,7 +2,7 @@
 /**
  * Handles all HTTP requests using cURL and manages the responses.
  *
- * @version 2011.03.01
+ * @version 2012.01.17
  * @copyright 2006-2011 Ryan Parman
  * @copyright 2006-2010 Foleeo Inc.
  * @copyright 2010-2011 Amazon.com, Inc. or its affiliates.
@@ -99,7 +99,7 @@ class RequestCore
 	/**
 	 * Default useragent string to use.
 	 */
-	public $useragent = 'RequestCore/1.4.2';
+	public $useragent = 'RequestCore/1.4.4';
 
 	/**
 	 * File to read from while streaming up.
@@ -135,6 +135,16 @@ class RequestCore
 	 * Stores the intended starting seek position.
 	 */
 	public $seek_position = null;
+
+	/**
+	 * The location of the cacert.pem file to use.
+	 */
+	public $cacert_location = false;
+
+	/**
+	 * The state of SSL certificate verification.
+	 */
+	public $ssl_verification = true;
 
 	/**
 	 * The user-defined callback function to call when a stream is read from.
@@ -597,8 +607,6 @@ class RequestCore
 		curl_setopt($curl_handle, CURLOPT_URL, $this->request_url);
 		curl_setopt($curl_handle, CURLOPT_FILETIME, true);
 		curl_setopt($curl_handle, CURLOPT_FRESH_CONNECT, false);
-		curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
-		curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, true);
 		curl_setopt($curl_handle, CURLOPT_CLOSEPOLICY, CURLCLOSEPOLICY_LEAST_RECENTLY_USED);
 		curl_setopt($curl_handle, CURLOPT_MAXREDIRS, 5);
 		curl_setopt($curl_handle, CURLOPT_HEADER, true);
@@ -610,12 +618,36 @@ class RequestCore
 		curl_setopt($curl_handle, CURLOPT_USERAGENT, $this->useragent);
 		curl_setopt($curl_handle, CURLOPT_READFUNCTION, array($this, 'streaming_read_callback'));
 
+		// Verification of the SSL cert
+		if ($this->ssl_verification)
+		{
+			curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, true);
+			curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, true);
+		}
+		else
+		{
+			curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
+			curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
+		}
+
+		// chmod the file as 0755
+		if ($this->cacert_location === true)
+		{
+			curl_setopt($curl_handle, CURLOPT_CAINFO, dirname(__FILE__) . '/cacert.pem');
+		}
+		elseif (is_string($this->cacert_location))
+		{
+			curl_setopt($curl_handle, CURLOPT_CAINFO, $this->cacert_location);
+		}
+
+		// Debug mode
 		if ($this->debug_mode)
 		{
 			curl_setopt($curl_handle, CURLOPT_VERBOSE, true);
 		}
 
-		if (!ini_get('safe_mode'))
+		// Handle open_basedir & safe mode
+		if (!ini_get('safe_mode') && !ini_get('open_basedir'))
 		{
 			curl_setopt($curl_handle, CURLOPT_FOLLOWLOCATION, true);
 		}
@@ -645,7 +677,7 @@ class RequestCore
 		// Handle the encoding if we can.
 		if (extension_loaded('zlib'))
 		{
-			curl_setopt($curl_handle, CURLOPT_ENCODING, '');
+			curl_setopt($curl_handle, CURLOPT_ENCODING, 'gzip, deflate');
 		}
 
 		// Process custom headers
@@ -789,7 +821,7 @@ class RequestCore
 
 		if ($this->response === false)
 		{
-			throw new RequestCore_Exception('cURL resource: ' . (string) $curl_handle . '; cURL error: ' . curl_error($curl_handle) . ' (' . curl_errno($curl_handle) . ')');
+			throw new cURL_Exception('cURL resource: ' . (string) $curl_handle . '; cURL error: ' . curl_error($curl_handle) . ' (cURL error code ' . curl_errno($curl_handle) . '). See http://curl.haxx.se/libcurl/c/libcurl-errors.html for an explanation of error codes.');
 		}
 
 		$parsed_response = $this->process_response($curl_handle, $this->response);
@@ -862,7 +894,7 @@ class RequestCore
 				// Since curl_errno() isn't reliable for handles that were in multirequests, we check the 'result' of the info read, which contains the curl error number, (listed here http://curl.haxx.se/libcurl/c/libcurl-errors.html )
 				if ($done['result'] > 0)
 				{
-					throw new RequestCore_Exception('cURL resource: ' . (string) $done['handle'] . '; cURL error: ' . curl_error($done['handle']) . ' (' . $done['result'] . ')');
+					throw new cURL_Multi_Exception('cURL resource: ' . (string) $done['handle'] . '; cURL error: ' . curl_error($done['handle']) . ' (cURL error code ' . $done['result'] . '). See http://curl.haxx.se/libcurl/c/libcurl-errors.html for an explanation of error codes.');
 				}
 
 				// Because curl_multi_info_read() might return more than one message about a request, we check to see if this request is already in our array of completed requests
@@ -991,7 +1023,6 @@ class ResponseCore
 	}
 }
 
-/**
- * Default RequestCore Exception.
- */
+class cURL_Exception extends Exception {}
+class cURL_Multi_Exception extends cURL_Exception {}
 class RequestCore_Exception extends Exception {}
