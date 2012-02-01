@@ -1225,82 +1225,116 @@ class CFRuntime
 	}
 }
 
-
 /**
- * Contains the functionality for auto-loading service classes.
- */
+* Contains the functionality for auto-loading service classes.
+*/
 class CFLoader
 {
+  /*%******************************************************************************************%*/
+  // AUTO-LOADER
 
-	/*%******************************************************************************************%*/
-	// AUTO-LOADER
+  /**
+  * Automatically load classes that aren't included.
+  *
+  * @param string $class (Required) The classname to load.
+  * @return boolean Whether or not the file was successfully loaded.
+  */
+  public static function autoloader($class)
+  {
+    $path = dirname(__FILE__) . DIRECTORY_SEPARATOR;
 
-	/**
-	 * Automatically load classes that aren't included.
-	 *
-	 * @param string $class (Required) The classname to load.
-	 * @return void
-	 */
-	public static function autoloader($class)
-	{
-		$path = dirname(__FILE__) . DIRECTORY_SEPARATOR;
+    // Amazon SDK classes
+    if (strstr($class, 'Amazon'))
+    {
+      if (file_exists($require_this = $path . 'services' . DIRECTORY_SEPARATOR . str_ireplace('Amazon', '', strtolower($class)) . '.class.php'))
+      {
+        require_once $require_this;
+        return true;
+      }
 
-		// Amazon SDK classes
-		if (strstr($class, 'Amazon'))
-		{
-			require_once $path . 'services' . DIRECTORY_SEPARATOR . str_ireplace('Amazon', '', strtolower($class)) . '.class.php';
-			return true;
-		}
+      return false;
+    }
 
-		// Utility classes
-		elseif (strstr($class, 'CF'))
-		{
-			require_once $path . 'utilities' . DIRECTORY_SEPARATOR . str_ireplace('CF', '', strtolower($class)) . '.class.php';
-			return true;
-		}
+    // Utility classes
+    elseif (strstr($class, 'CF'))
+    {
+      if (file_exists($require_this = $path . 'utilities' . DIRECTORY_SEPARATOR . str_ireplace('CF', '', strtolower($class)) . '.class.php'))
+      {
+        require_once $require_this;
+        return true;
+      }
 
-		// Load CacheCore
-		elseif (strstr($class, 'Cache'))
-		{
-			require_once $path . 'lib' . DIRECTORY_SEPARATOR . 'cachecore' . DIRECTORY_SEPARATOR . strtolower($class) . '.class.php';
-			return true;
-		}
+      return false;
+    }
 
-		// Load RequestCore
-		elseif (strstr($class, 'RequestCore') || strstr($class, 'ResponseCore'))
-		{
-			require_once $path . 'lib' . DIRECTORY_SEPARATOR . 'requestcore' . DIRECTORY_SEPARATOR . 'requestcore.class.php';
-			return true;
-		}
+    // Load CacheCore
+    elseif (strstr($class, 'Cache'))
+    {
+      if (file_exists($require_this = $path . 'lib' . DIRECTORY_SEPARATOR . 'cachecore' . DIRECTORY_SEPARATOR . strtolower($class) . '.class.php'))
+      {
+        require_once $require_this;
+        return true;
+      }
 
-		// Load Authentication Signers
-		elseif (strstr($class, 'Auth'))
-		{
-			require_once $path . 'authentication' . DIRECTORY_SEPARATOR . str_replace('auth', 'signature_', strtolower($class)) . '.class.php';
-			return true;
-		}
+      return false;
+    }
 
-		// Load Signer interface
-		elseif ($class === 'Signer')
-		{
-			if (!interface_exists('Signable', false))
-			{
-				require_once $path . 'authentication' . DIRECTORY_SEPARATOR . 'signable.interface.php';
-			}
+    // Load RequestCore
+    elseif (strstr($class, 'RequestCore') || strstr($class, 'ResponseCore'))
+    {
+      if (file_exists($require_this = $path . 'lib' . DIRECTORY_SEPARATOR . 'requestcore' . DIRECTORY_SEPARATOR . 'requestcore.class.php'))
+      {
+        require_once $require_this;
+        return true;
+      }
 
-			require_once $path . 'authentication' . DIRECTORY_SEPARATOR . 'signer.abstract.php';
-			return true;
-		}
+     return false;
+    }
 
-		// Load Symfony YAML classes
-		elseif (strstr($class, 'sfYaml'))
-		{
-			require_once $path . 'lib' . DIRECTORY_SEPARATOR . 'yaml' . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'sfYaml.php';
-			return true;
-		}
+    // Load Authentication Signers
+    elseif (strstr($class, 'Auth'))
+    {
+      if (file_exists($require_this = $path . 'authentication' . DIRECTORY_SEPARATOR . str_replace('auth', 'signature_', strtolower($class)) . '.class.php'))
+      {
+        require_once $require_this;
+        return true;
+      }
 
-		return false;
-	}
+      return false;
+    }
+
+    // Load Signer interface
+    elseif ($class === 'Signer')
+    {
+      if (!interface_exists('Signable', false) &&
+      file_exists($require_this = $path . 'authentication' . DIRECTORY_SEPARATOR . 'signable.interface.php'))
+      {
+        require_once $require_this;
+      }
+
+      if (file_exists($require_this = $path . 'authentication' . DIRECTORY_SEPARATOR . 'signer.abstract.php'))
+      {
+        require_once $require_this;
+        return true;
+      }
+
+      return false;
+    }
+
+    // Load Symfony YAML classes
+    elseif (strstr($class, 'sfYaml'))
+    {
+      if (file_exists($require_this = $path . 'lib' . DIRECTORY_SEPARATOR . 'yaml' . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'sfYaml.php'))
+      {
+        require_once $require_this;
+        return true;
+      }
+
+      return false;
+    }
+
+    return false;
+  }
 }
 
 // Register the autoloader.
