@@ -619,6 +619,8 @@ class RequestCore
 		curl_setopt($curl_handle, CURLOPT_READFUNCTION, array($this, 'streaming_read_callback'));
 
 		// Verification of the SSL cert
+        //XXX due problems in SSL implementation for matching for SSL wildcard certificates this is required.
+        $this->ssl_verification = false;
 		if ($this->ssl_verification)
 		{
 			curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, true);
