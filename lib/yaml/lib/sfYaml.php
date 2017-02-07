@@ -16,6 +16,11 @@
  * @author     Fabien Potencier <fabien.potencier@symfony-project.com>
  * @version    SVN: $Id: sfYaml.class.php 8988 2008-05-15 20:24:26Z fabien $
  */
+
+if(class_exists('sfYaml')) {
+    return;
+}
+
 class sfYaml
 {
   static protected
