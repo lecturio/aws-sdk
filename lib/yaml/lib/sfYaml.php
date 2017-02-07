@@ -129,7 +129,10 @@ class sfYaml
  *
  * @param string $string The string to echo with new line
  */
-function echoln($string)
+if(!function_exists('echoln'))
 {
-  echo $string."\n";
+	function echoln($string)
+	{
+	  echo $string."\n";
+	}
 }
